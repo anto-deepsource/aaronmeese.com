@@ -38,7 +38,7 @@ import Window from "./window";
 const applications = [];
 let applicationCount = 1;
 
-const getSettingsKey = (metadata) => "meeseOS/application/" + metadata.name;
+const getSettingsKey = (metadata) => 'meeseOS/application/' + metadata.name;
 
 /**
  * Application Options
