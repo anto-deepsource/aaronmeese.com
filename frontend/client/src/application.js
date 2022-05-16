@@ -28,17 +28,17 @@
  * @license Simplified BSD License
  */
 
-import { EventEmitter } from '@aaronmeese.com/event-emitter'
-import { loadOptionsFromConfig } from './utils/windows'
-import logger from './logger'
-import merge from 'deepmerge'
-import Websocket from './websocket'
-import Window from './window'
+import { EventEmitter } from "@aaronmeese.com/event-emitter";
+import { loadOptionsFromConfig } from "./utils/windows";
+import logger from "./logger";
+import merge from "deepmerge";
+import Websocket from "./websocket";
+import Window from "./window";
 
-const applications = []
-let applicationCount = 1
+const applications = [];
+let applicationCount = 1;
 
-const getSettingsKey = (metadata) => 'meeseOS/application/' + metadata.name
+const getSettingsKey = (metadata) => "meeseOS/application/" + metadata.name;
 
 /**
  * Application Options
@@ -72,179 +72,179 @@ const getSettingsKey = (metadata) => 'meeseOS/application/' + metadata.name
  * Base class for an Application
  */
 export default class Application extends EventEmitter {
-  /**
+	/**
 	 * Create application
 	 *
 	 * @param {Core} core Core reference
 	 * @param {ApplicationData} data Application data
 	 */
-  constructor (core, data) {
-    data = {
-      args: {},
-      options: {},
-      metadata: {},
-      ...data
-    }
+	constructor(core, data) {
+		data = {
+			args: {},
+			options: {},
+			metadata: {},
+			...data,
+		};
 
-    logger.debug('Application::constructor()', data)
+		logger.debug("Application::constructor()", data);
 
-    const defaultSettings = data.options.settings
-      ? { ...data.options.settings }
-      : {}
+		const defaultSettings = data.options.settings
+			? { ...data.options.settings }
+			: {};
 
-    const name =
+		const name =
 			data.metadata && data.metadata.name
-			  ? 'Application@' + data.metadata.name
-			  : 'Application' + String(applicationCount)
+				? "Application@" + data.metadata.name
+				: "Application" + String(applicationCount);
 
-    super(name)
+		super(name);
 
-    /**
+		/**
 		 * The Application ID
 		 * @type {Number}
 		 * @readonly
 		 */
-    this.pid = applicationCount
+		this.pid = applicationCount;
 
-    /**
+		/**
 		 * Core instance reference
 		 * @type {Core}
 		 * @readonly
 		 */
-    this.core = core
+		this.core = core;
 
-    /**
+		/**
 		 * Application arguments
 		 * @type {{foo: *}}
 		 */
-    this.args = data.args
+		this.args = data.args;
 
-    /**
+		/**
 		 * Application options
 		 * @type {ApplicationOptions}
 		 */
-    this.options = {
-      sessionable: true,
-      windowAutoFocus: true,
-      ...data.options
-    }
+		this.options = {
+			sessionable: true,
+			windowAutoFocus: true,
+			...data.options,
+		};
 
-    /**
+		/**
 		 * Application metadata
 		 * @type {PackageMetadata}
 		 * @readonly
 		 */
-    this.metadata = data.metadata
+		this.metadata = data.metadata;
 
-    /**
+		/**
 		 * Window list
 		 * @type {Window[]}
 		 */
-    this.windows = []
+		this.windows = [];
 
-    /**
+		/**
 		 * Worker instances
 		 * @type {Worker[]}
 		 */
-    this.workers = []
+		this.workers = [];
 
-    /**
+		/**
 		 * Options for internal fetch/requests
 		 * @type {object}
 		 */
-    this.requestOptions = {}
+		this.requestOptions = {};
 
-    /**
+		/**
 		 * The application destruction state
 		 * @type {boolean}
 		 */
-    this.destroyed = false
+		this.destroyed = false;
 
-    /**
+		/**
 		 * Application settings
 		 * @type {{foo: *}}
 		 */
-    this.settings = core
-      .make('meeseOS/settings')
-      .get(getSettingsKey(this.metadata), null, defaultSettings)
+		this.settings = core
+			.make("meeseOS/settings")
+			.get(getSettingsKey(this.metadata), null, defaultSettings);
 
-    /**
+		/**
 		 * Application started time
 		 * @type {Date}
 		 * @readonly
 		 */
-    this.started = new Date()
+		this.started = new Date();
 
-    /**
+		/**
 		 * Application WebSockets
 		 * @type {Websocket[]}
 		 */
-    this.sockets = []
+		this.sockets = [];
 
-    applications.push(this)
-    applicationCount++
+		applications.push(this);
+		applicationCount++;
 
-    this.core.emit('meeseOS/application:create', this)
-  }
+		this.core.emit("meeseOS/application:create", this);
+	}
 
-  /**
+	/**
 	 * Destroy application
 	 */
-  destroy (remove = true) {
-    if (this.destroyed) {
-      return
-    }
-    this.destroyed = true
+	destroy(remove = true) {
+		if (this.destroyed) {
+			return;
+		}
+		this.destroyed = true;
 
-    this.emit('destroy')
-    this.core.emit('meeseOS/application:destroy', this)
+		this.emit("destroy");
+		this.core.emit("meeseOS/application:destroy", this);
 
-    const destroy = (list, fn) => {
-      try {
-        list.forEach(fn)
-      } catch (e) {
-        logger.warn('Exception on application destruction', e)
-      }
+		const destroy = (list, fn) => {
+			try {
+				list.forEach(fn);
+			} catch (e) {
+				logger.warn("Exception on application destruction", e);
+			}
 
-      return []
-    }
+			return [];
+		};
 
-    this.windows = destroy(this.windows, (window) => window.destroy())
-    this.sockets = destroy(this.sockets, (ws) => ws.close())
-    this.workers = destroy(this.workers, (worker) => worker.terminate())
+		this.windows = destroy(this.windows, (window) => window.destroy());
+		this.sockets = destroy(this.sockets, (ws) => ws.close());
+		this.workers = destroy(this.workers, (worker) => worker.terminate());
 
-    if (remove) {
-      const foundIndex = applications.findIndex((a) => a === this)
-      if (foundIndex !== -1) {
-        applications.splice(foundIndex, 1)
-      }
-    }
+		if (remove) {
+			const foundIndex = applications.findIndex((a) => a === this);
+			if (foundIndex !== -1) {
+				applications.splice(foundIndex, 1);
+			}
+		}
 
-    super.destroy()
-  }
+		super.destroy();
+	}
 
-  /**
+	/**
 	 * Re-launch this application
 	 */
-  relaunch () {
-    const windows = this.windows.map((w) => w.getSession())
+	relaunch() {
+		const windows = this.windows.map((w) => w.getSession());
 
-    this.destroy()
+		this.destroy();
 
-    setTimeout(() => {
-      this.core.run(
-        this.metadata.name,
-        { ...this.args },
-        {
-          ...this.options,
-          forcePreload: this.core.config('development'),
-          restore: { windows }
-        }
-      )
-    }, 1)
-  }
+		setTimeout(() => {
+			this.core.run(
+				this.metadata.name,
+				{ ...this.args },
+				{
+					...this.options,
+					forcePreload: this.core.config("development"),
+					restore: { windows },
+				}
+			);
+		}, 1);
+	}
 
-  /**
+	/**
 	 * Gets a URI to a resource for this application
 	 *
 	 * If given path is an URI it will just return itself.
@@ -253,11 +253,11 @@ export default class Application extends EventEmitter {
 	 * @param {object} [options] Options for url() in core
 	 * @return {string} A complete URI
 	 */
-  resource (path = '/', options = {}) {
-    return this.core.url(path, options, this.metadata)
-  }
+	resource(path = "/", options = {}) {
+		return this.core.url(path, options, this.metadata);
+	}
 
-  /**
+	/**
 	 * Performs a request to the MeeseOS server with the application
 	 * as the endpoint.
 	 * @param {string} [path=/] Append this to endpoint
@@ -265,33 +265,33 @@ export default class Application extends EventEmitter {
 	 * @param {string} [type='json'] Request / Response type
 	 * @return {Promise<*>} ArrayBuffer or JSON
 	 */
-  request (path = '/', options = {}, type = 'json') {
-    const uri = this.resource(path)
+	request(path = "/", options = {}, type = "json") {
+		const uri = this.resource(path);
 
-    return this.core.request(uri, options, type)
-  }
+		return this.core.request(uri, options, type);
+	}
 
-  /**
+	/**
 	 * Creates a new Websocket
 	 * @param {string} [path=/socket] Append this to endpoint
 	 * @param {WebsocketOptions} [options={}] Connection options
 	 * @return {Websocket}
 	 */
-  socket (path = '/socket', options = {}) {
-    options = {
-      socket: {},
-      ...options
-    }
+	socket(path = "/socket", options = {}) {
+		options = {
+			socket: {},
+			...options,
+		};
 
-    const uri = this.resource(path, { type: 'websocket' })
-    const ws = new Websocket(this.metadata.name, uri, options.socket)
+		const uri = this.resource(path, { type: "websocket" });
+		const ws = new Websocket(this.metadata.name, uri, options.socket);
 
-    this.sockets.push(ws)
+		this.sockets.push(ws);
 
-    return ws
-  }
+		return ws;
+	}
 
-  /**
+	/**
 	 * Sends a message over websocket via the core connection.
 	 *
 	 * This does not create a new connection, but rather uses the core connection.
@@ -299,177 +299,177 @@ export default class Application extends EventEmitter {
 	 *
 	 * @param {*} ...args Arguments to pass to message
 	 */
-  send (...args) {
-    this.core.send('meeseOS/application:socket:message', {
-      pid: this.pid,
-      name: this.metadata.name,
-      args
-    })
-  }
+	send(...args) {
+		this.core.send("meeseOS/application:socket:message", {
+			pid: this.pid,
+			name: this.metadata.name,
+			args,
+		});
+	}
 
-  /**
+	/**
 	 * Creates a new Worker
 	 * @param {string} filename Worker filename
 	 * @param {object} [options] Worker options
 	 * @return {Worker}
 	 */
-  worker (filename, options = {}) {
-    const uri = this.resource(filename)
-    const worker = new Worker(uri, {
-      credentials: 'same-origin',
-      ...options
-    })
+	worker(filename, options = {}) {
+		const uri = this.resource(filename);
+		const worker = new Worker(uri, {
+			credentials: "same-origin",
+			...options,
+		});
 
-    this.workers.push(worker)
+		this.workers.push(worker);
 
-    return worker
-  }
+		return worker;
+	}
 
-  /**
+	/**
 	 * Create a new window belonging to this application
 	 * @param {WindowOptions} [options={}] Window options
 	 * @return {Window}
 	 */
-  createWindow (options = {}) {
-    const found = this.windows.find((w) => w.id === options.id)
-    if (found) {
-      const msg = `Window with ID \'${options.id}\' already exists`
-      throw new Error(msg)
-    }
+	createWindow(options = {}) {
+		const found = this.windows.find((w) => w.id === options.id);
+		if (found) {
+			const msg = `Window with ID \'${options.id}\' already exists`;
+			throw new Error(msg);
+		}
 
-    const configWindows = this.core.config('application.windows', [])
-    const applyOptions = loadOptionsFromConfig(
-      configWindows,
-      this.metadata.name,
-      options.id
-    )
-    const instance = new Window(this.core, merge(options, applyOptions))
+		const configWindows = this.core.config("application.windows", []);
+		const applyOptions = loadOptionsFromConfig(
+			configWindows,
+			this.metadata.name,
+			options.id
+		);
+		const instance = new Window(this.core, merge(options, applyOptions));
 
-    if (this.options.restore) {
-      const windows = this.options.restore.windows || []
-      const found = windows.findIndex((r) => r.id === instance.id)
+		if (this.options.restore) {
+			const windows = this.options.restore.windows || [];
+			const found = windows.findIndex((r) => r.id === instance.id);
 
-      if (found !== -1) {
-        const restore = windows[found]
-        instance.setPosition(restore.position, true)
-        instance.setDimension(restore.dimension)
+			if (found !== -1) {
+				const restore = windows[found];
+				instance.setPosition(restore.position, true);
+				instance.setDimension(restore.dimension);
 
-        if (restore.minimized) {
-          instance.minimize()
-        } else if (restore.maximized) {
-          instance.maximize()
-        }
+				if (restore.minimized) {
+					instance.minimize();
+				} else if (restore.maximized) {
+					instance.maximize();
+				}
 
-        this.options.restore.windows.splice(found, 1)
-      }
-    }
+				this.options.restore.windows.splice(found, 1);
+			}
+		}
 
-    instance.init()
+		instance.init();
 
-    this.windows.push(instance)
+		this.windows.push(instance);
 
-    this.emit('create-window', instance)
-    instance.on('destroy', () => {
-      if (!this.destroyed) {
-        const foundIndex = this.windows.findIndex((w) => w === instance)
-        if (foundIndex !== -1) {
-          this.windows.splice(foundIndex, 1)
-        }
-      }
+		this.emit("create-window", instance);
+		instance.on("destroy", () => {
+			if (!this.destroyed) {
+				const foundIndex = this.windows.findIndex((w) => w === instance);
+				if (foundIndex !== -1) {
+					this.windows.splice(foundIndex, 1);
+				}
+			}
 
-      this.emit('destroy-window', instance)
-    })
+			this.emit("destroy-window", instance);
+		});
 
-    if (this.options.windowAutoFocus) {
-      instance.focus()
-    }
+		if (this.options.windowAutoFocus) {
+			instance.focus();
+		}
 
-    return instance
-  }
+		return instance;
+	}
 
-  /**
+	/**
 	 * Removes window(s) based on given filter
 	 * @param {Function} filter Filter function
 	 */
-  removeWindow (filter) {
-    const found = this.windows.filter(filter)
-    found.forEach((win) => win.destroy())
-  }
+	removeWindow(filter) {
+		const found = this.windows.filter(filter);
+		found.forEach((win) => win.destroy());
+	}
 
-  /**
+	/**
 	 * Gets a snapshot of the application session
 	 * @return {ApplicationSession}
 	 */
-  getSession () {
-    const session = {
-      args: { ...this.args },
-      name: this.metadata.name,
-      windows: this.windows
-        .map((w) => w.getSession())
-        .filter((s) => s !== null)
-    }
+	getSession() {
+		const session = {
+			args: { ...this.args },
+			name: this.metadata.name,
+			windows: this.windows
+				.map((w) => w.getSession())
+				.filter((s) => s !== null),
+		};
 
-    return session
-  }
+		return session;
+	}
 
-  /**
+	/**
 	 * Emits an event across all (or filtered) applications
 	 *
 	 * @deprecated
 	 * @param {Function} [filter] A method to filter what applications to send to
 	 * @return {Function} Function with 'emit()' signature
 	 */
-  emitAll (filter) {
-    logger.warn(
-      'Application#emitAll is deprecated. Use Core#broadcast instead'
-    )
+	emitAll(filter) {
+		logger.warn(
+			"Application#emitAll is deprecated. Use Core#broadcast instead"
+		);
 
-    const defaultFilter = (proc) => proc.pid !== this.pid
-    const filterFn =
-			typeof filter === 'function'
-			  ? filter
-			  : typeof filter === 'string'
-			    ? (proc) => defaultFilter(proc) && proc.metadata.name === filter
-			    : defaultFilter
+		const defaultFilter = (proc) => proc.pid !== this.pid;
+		const filterFn =
+			typeof filter === "function"
+				? filter
+				: typeof filter === "string"
+				? (proc) => defaultFilter(proc) && proc.metadata.name === filter
+				: defaultFilter;
 
-    return (name, ...args) =>
-      applications.filter(filterFn).map((proc) => proc.emit(name, ...args))
-  }
+		return (name, ...args) =>
+			applications.filter(filterFn).map((proc) => proc.emit(name, ...args));
+	}
 
-  /**
+	/**
 	 * Saves settings
 	 * @return {Promise<boolean>}
 	 */
-  saveSettings () {
-    const service = this.core.make('meeseOS/settings')
-    const name = getSettingsKey(this.metadata)
+	saveSettings() {
+		const service = this.core.make("meeseOS/settings");
+		const name = getSettingsKey(this.metadata);
 
-    service.set(name, null, this.settings)
+		service.set(name, null, this.settings);
 
-    return service.save()
-  }
+		return service.save();
+	}
 
-  /**
+	/**
 	 * Get a list of all running applications
 	 *
 	 * @return {Application[]}
 	 */
-  static getApplications () {
-    return applications
-  }
+	static getApplications() {
+		return applications;
+	}
 
-  /**
+	/**
 	 * Kills all running applications
 	 */
-  static destroyAll () {
-    applications.forEach((proc) => {
-      try {
-        proc.destroy(false)
-      } catch (e) {
-        logger.warn('Exception on destroyAll', e)
-      }
-    })
+	static destroyAll() {
+		applications.forEach((proc) => {
+			try {
+				proc.destroy(false);
+			} catch (e) {
+				logger.warn("Exception on destroyAll", e);
+			}
+		});
 
-    applications.splice(0, applications.length)
-  }
+		applications.splice(0, applications.length);
+	}
 }
