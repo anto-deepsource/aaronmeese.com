@@ -36,7 +36,7 @@ import Websocket from "./websocket";
 import Window from "./window";
 
 const applications = [];
-let applicationCount = 0;
+let applicationCount = 1;
 
 const getSettingsKey = (metadata) => "meeseOS/application/" + metadata.name;
 
